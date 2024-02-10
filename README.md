@@ -31,3 +31,8 @@ BloomStore Methods:
     2. Insert into active hash map.
         Q: Lock how?
     3. If active buffer is full, flush it to SSD. 
+
+# TODO
+- [x] BloomFilter and KVPairs
+- [ ] Dump and Load (should be easy)
+- [ ] Get BloomStore working

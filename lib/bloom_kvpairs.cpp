@@ -1,6 +1,7 @@
 #include<cstring>
 #include<bloom_kvpairs.hpp>
 #include<iostream>
+#include <cassert>
 
 namespace bloomstore {
 
@@ -10,6 +11,8 @@ namespace bloomstore {
 /// @brief delete key by adding a tombstone
 /// @param key the deleted key
 void KVPairs::Del(std::span<uint8_t> key) {
+    assert(key.size() == K);
+    assert(this->size < this->capacity);
     auto i = this->size;
     this->size += 1;
     this->tombstone[i] = true;
@@ -20,25 +23,30 @@ void KVPairs::Del(std::span<uint8_t> key) {
 /// @brief get a key
 /// @param key the inquired key
 /// @return nullopt if not found, {nullopt} if deleted, {{value}} if entry exists
-std::optional<std::optional<std::span<uint8_t>>> KVPairs::Get(std::span<uint8_t> key) {
+void KVPairs::Get(std::span<uint8_t> key, std::span<uint8_t> val, bool& is_found, bool& is_tombstone) {
+    assert(key.size() == K);
+    assert(val.size() == K);
+    is_found = false;
+    is_tombstone = false;
     for (int i = 0; i < this->size; ++i) {
         int j = this->size - i - 1;
         bool eq = 0 == memcmp(&this->pairs[j * (K + V)], &key[0], K);
         if (!eq) { continue; }
-        if (this->tombstone[j]) {
-            return std::optional<std::optional<std::span<uint8_t>>>{std::nullopt};
-        }
-        std::span<uint8_t> value = std::span{this->pairs}
-            .subspan(j * (K + V) + K, V);
-        return std::optional{std::optional{value}};
+        is_found = true;
+        is_tombstone = this->tombstone[j];
+        if (!is_tombstone)
+            memcpy(&val[0], &this->pairs[j * (K + V) + K], V);
+        return;
     }
-    return std::nullopt;
 }
 
 /// @brief put a key into storage
 /// @param key the inquired key
 /// @param val the inserted value
 void KVPairs::Put(std::span<uint8_t> key, std::span<uint8_t> val) {
+    assert(key.size() == K);
+    assert(val.size() == V);
+    assert(this->size < this->capacity);
     auto i = this->size;
     this->size += 1;
     this->tombstone[i] = false;

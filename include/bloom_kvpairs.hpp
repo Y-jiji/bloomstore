@@ -20,7 +20,7 @@ class KVPairs {
     KVPairs(size_t key_bytes, size_t value_bytes, size_t capacity);
     void Put(std::span<uint8_t> key, std::span<uint8_t> value);
     void Del(std::span<uint8_t> key);
-    std::optional<std::optional<std::span<uint8_t>>> Get(std::span<uint8_t> key);
+    void Get(std::span<uint8_t> key, std::span<uint8_t> value, bool& is_tombstone, bool& is_found);
 };
 
 } // namespace bloomstore

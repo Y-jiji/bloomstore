@@ -32,10 +32,10 @@ std::array<uint8_t, 4> to_arr(uint32_t xvalue) {
 }
 
 TEST(KVPairs, ReadWriteTest) {
-    auto kvpairs = bloomstore::KVPairs(K, V, 256);
+    auto kvpairs = bloomstore::KVPairs(K, V, 4096);
     auto ground_truth = std::unordered_map<ARR, ARR, KeyHasher>();
     auto random_number_generator = xorshift::XorShift32(5);
-    for (int i = 0; i < 256; ++i) {
+    for (int i = 0; i < 4096; ++i) {
         auto action = random_number_generator.Sample() % 3;
         auto key    = to_arr(random_number_generator.Sample() % 64);
         auto value  = to_arr(random_number_generator.Sample());
@@ -52,16 +52,16 @@ TEST(KVPairs, ReadWriteTest) {
                 break;
             }
             case 2: {
-                auto value = kvpairs.Get(std::span{key});
+                auto value = ARR();
+                bool is_tombstone = true;
+                bool is_found = true;
+                kvpairs.Get(std::span{key}, std::span{value}, is_tombstone, is_found);
                 if (ground_truth.contains(key)) {
-                    auto expected_value = std::vector(ground_truth[key].begin(), ground_truth[key].end());
-                    auto inner_value = value.value().value();
-                    auto inner_array = std::vector(inner_value.begin(), inner_value.end());
-                    ASSERT_EQ(expected_value, inner_array);
+                    auto expected_value = ground_truth[key];
+                    ASSERT_EQ(expected_value, value);
                 }
                 else {
-                    auto is_null = !value.has_value() || !value.value().has_value();
-                    ASSERT_TRUE(is_null);
+                    ASSERT_TRUE(is_tombstone || !is_found);
                 }
                 break;
             }
@@ -71,6 +71,4 @@ TEST(KVPairs, ReadWriteTest) {
 
 #undef K
 #undef V
-#undef KVPAIRS
-#undef ARR
 #undef ARR
