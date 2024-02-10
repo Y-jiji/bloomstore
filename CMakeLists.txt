@@ -19,7 +19,7 @@ FetchContent_MakeAvailable(gtest)
 add_library(
     bloomstore
     SHARED
-        lib/bloom_buffer.cpp
+        lib/bloom_kvpairs.cpp
         lib/bloom_filter.cpp
         lib/bloom_store.cpp
         lib/partitioner.cpp
@@ -48,3 +48,6 @@ target_link_libraries(
 
 add_executable(bloom_filter_test testing/bloom_filter_test.cpp)
 target_link_libraries(bloom_filter_test bloomstore gtest_main)
+
+add_executable(bloom_kvpairs_test testing/bloom_kvpairs_test.cpp)
+target_link_libraries(bloom_kvpairs_test bloomstore gtest_main)

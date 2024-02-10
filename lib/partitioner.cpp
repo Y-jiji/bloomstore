@@ -1,5 +1,5 @@
 #include<iostream>
-#include<bloom_buffer.hpp>
+#include<bloom_kvpairs.hpp>
 
 namespace bloomstore
 {
