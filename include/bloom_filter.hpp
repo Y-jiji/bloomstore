@@ -14,7 +14,7 @@ class BloomFilter {
     uint32_t Hash(std::span<uint8_t> key, uint32_t seed);
 
     public:
-    BloomFilter(uint32_t nslots, uint8_t n_seeds);
+    BloomFilter(uint32_t nslots, uint8_t nfunc);
     void Insert(std::span<uint8_t> key);
     bool Test(std::span<uint8_t> key);
 

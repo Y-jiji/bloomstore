@@ -47,4 +47,4 @@ target_link_libraries(
 # -- Testing stuff goes here
 
 add_executable(bloom_filter_test testing/bloom_filter_test.cpp)
-target_link_libraries(bloom_filter_test gtest_main bloom_store)
+target_link_libraries(bloom_filter_test bloomstore gtest_main)
