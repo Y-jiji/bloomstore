@@ -5,6 +5,16 @@
 namespace bloomstore
 {
 
+/// @brief a utility function for murmur hash implementation
+/// @param k the scrambled key
+/// @return scrambled k
+inline uint32_t Scramble(uint32_t k) {
+    k *= 0xcc9e2d51;
+    k = (k << 15) | (k >> 17);
+    k *= 0x1b873593;
+    return k;
+}
+
 /// @brief initialize a bloom filter with nslots slots and nfunc hash functions
 /// @param nslots   the number of slots
 /// @param nfunc    the number of hash functions
@@ -74,16 +84,6 @@ bool BloomFilter::Test(std::span<uint8_t> key) {
         collector &= this->slots[hash_z];
     }
     return collector;
-}
-
-/// @brief a utility function for murmur hash implementation
-/// @param k the scrambled key
-/// @return scrambled k
-inline uint32_t Scramble(uint32_t k) {
-    k *= 0xcc9e2d51;
-    k = (k << 15) | (k >> 17);
-    k *= 0x1b873593;
-    return k;
 }
 
 } // namespace bloomstore

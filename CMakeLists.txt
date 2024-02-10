@@ -6,6 +6,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+include(FetchContent)
+FetchContent_Declare(
+    gtest
+    URL https://github.com/google/googletest/archive/5376968f6948923e2411081fd9372e71a59d8e77.zip
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(gtest)
+
 # -- Library implemented here
 
 add_library(
@@ -24,7 +32,7 @@ target_include_directories(
         $<INSTALL_INTERFACE:include>
 )
 
-# -- Testing stuff implemented here
+# -- Benchmarking stuff implemented here
 
 add_executable(
     main
@@ -35,3 +43,8 @@ target_link_libraries(
     main
         bloomstore
 )
+
+# -- Testing stuff goes here
+
+add_executable(bloom_filter_test testing/bloom_filter_test.cpp)
+target_link_libraries(bloom_filter_test gtest_main bloom_store)
