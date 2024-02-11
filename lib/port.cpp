@@ -8,19 +8,35 @@
 #include<fcntl.h>
 #include<string>
 #include<span>
+#include<sys/stat.h>
+#include<iostream>
 
-
-FileObject::FileObject(std::string&& path):
+FileObject::FileObject(std::string& path):
     path{path}
 {
-    this->fd = open(this->path.c_str(), O_RDWR|O_DIRECT|O_SYNC|O_APPEND, 0600);
+    this->fd = open(this->path.c_str(), O_CREAT|O_RDWR|O_DIRECT|O_SYNC|O_APPEND, S_IRWXU);
+    assert(this->fd >= 0);
+    struct stat st;
+    stat(this->path.c_str(), &st);
+    this->size = st.st_size;
+}
+
+FileObject::~FileObject()
+{
+    int error_code = close(this->fd);
+    assert(error_code == 0);
+}
+
+size_t FileObject::Size() {
+    return this->size;
 }
 
 void FileObject::Append(std::span<uint8_t> bytes) {
     assert(bytes.size() % 1024 == 0);
-    // O_APPEND, so no lseek
+    // we used O_APPEND, so no lseek
     int32_t flag = write(this->fd, &bytes[0], bytes.size());
     assert(flag > 0);
+    this->size += bytes.size();
 }
 
 void FileObject::Read(size_t position, std::span<uint8_t> bytes) {
@@ -28,6 +44,20 @@ void FileObject::Read(size_t position, std::span<uint8_t> bytes) {
     assert(position % 1024 == 0);
     lseek(this->fd, position, SEEK_SET);
     int32_t flag = read(this->fd, &bytes[0], bytes.size());
+    assert(flag > 0);
+}
+
+void FileObject::ContinueRead(std::span<uint8_t> bytes) {
+    assert(bytes.size() % 1024 == 0);
+    int32_t flag = read(this->fd, &bytes[0], bytes.size());
+    assert(flag > 0);
+}
+
+void FileObject::ContinueReadRev(std::span<uint8_t> bytes) {
+    assert(bytes.size() % 1024 == 0);
+    lseek(this->fd, -bytes.size(), SEEK_CUR);
+    int32_t flag = read(this->fd, &bytes[0], bytes.size());
+    lseek(this->fd, -bytes.size(), SEEK_CUR);
     assert(flag > 0);
 }
 

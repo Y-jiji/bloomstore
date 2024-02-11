@@ -4,6 +4,8 @@
 #include <vector>
 #include <array>
 #include <span>
+#include <functional>
+#include <port.hpp>
 
 namespace bloomstore {
 
@@ -31,10 +33,13 @@ class KVPairs {
     size_t capacity;
 
     public:
-    KVPairs(size_t key_bytes, size_t value_bytes, size_t capacity);
+    KVPairs(size_t key_bytes, size_t value_bytes, size_t capacity, size_t align);
     void Put(std::span<uint8_t> key, std::span<uint8_t> value);
     void Del(std::span<uint8_t> key);
     void Get(std::span<uint8_t> key, std::span<uint8_t> value, bool& is_tombstone, bool& is_found);
+    bool IsFull();
+    void Dump(FileObject& file);
+    void Load(std::function<void(std::span<uint8_t>)> loader);
 
 };
 

@@ -30,12 +30,12 @@ void BitSpan::Set(size_t i, bool v) {
 }
 
 /// @brief initialize an empty kv storage
-KVPairs::KVPairs(size_t key_bytes, size_t value_bytes, size_t capacity):
+KVPairs::KVPairs(size_t key_bytes, size_t value_bytes, size_t capacity, size_t align):
     size{0},
     key_bytes{key_bytes},
     value_bytes{value_bytes},
     capacity{capacity},
-    space(capacity * key_bytes * value_bytes + (capacity + 7) / 8, 0),
+    space((capacity * key_bytes * value_bytes + (capacity + 7) / 8 + align - 1) / align * align, 0),
     tombstone(std::span{&this->space[0], (C+7)/8})
 {
     this->tombstone = BitSpan(std::span{&this->space[0], (C+7)/8});
@@ -87,6 +87,29 @@ void KVPairs::Get(std::span<uint8_t> key, std::span<uint8_t> val, bool& is_tombs
             memcpy(&val[0], &this->pairs[j * (K + V) + K], V);
         return;
     }
+}
+
+/// @brief check if current kvpairs object is full
+/// @return return true when it is full 
+bool KVPairs::IsFull() {
+    return this->size == this->capacity;
+}
+
+/// @brief dump current kvpairs to file and clear current object
+/// @param file the file to dump into
+void KVPairs::Dump(FileObject& file) {
+    assert(this->IsFull());
+    auto space = std::span{&this->space[0], this->space.size()};
+    file.Append(space);
+    this->size = 0;
+}
+
+/// @brief load kvpairs from file object
+/// @param loader loader takes a buffer and loads data into this buffer
+void KVPairs::Load(std::function<void(std::span<uint8_t>)> loader) {
+    auto space = std::span{&this->space[0], this->space.size()};
+    loader(space);
+    this->size = this->capacity;
 }
 
 #undef K

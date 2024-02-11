@@ -1,6 +1,8 @@
 #include<cstdint>
 #include<vector>
 #include<span>
+#include<port.hpp>
+#include<functional>
 
 namespace bloomstore {
 class BloomChain;
@@ -16,7 +18,7 @@ class BloomFilter {
     friend BloomChain;
 
     public:
-    BloomFilter(uint32_t nslots, uint8_t nfunc);
+    BloomFilter(size_t nslots, size_t nfunc);
     void Insert(std::span<uint8_t> key);
     bool Test(std::span<uint8_t> key);
 
@@ -33,9 +35,12 @@ class BloomChain {
     uint16_t chain_length;
 
     public:
-    BloomChain(uint32_t nslots, uint8_t nfunc, size_t align);
+    BloomChain(size_t nslots, size_t nfunc, size_t align);
     void Join(BloomFilter&& filter, size_t block_address);
     PtrIterator Test(std::span<uint8_t> key);
+    bool IsFull();
+    void Dump(FileObject& file);
+    void Load(std::function<void(std::span<uint8_t>)> loader);
 
 };
 
