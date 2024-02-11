@@ -2,6 +2,7 @@
 #include<span>
 #include<cstring>
 #include<cassert>
+#include<iostream>
 
 namespace bloomstore
 {
@@ -99,9 +100,12 @@ bool BloomFilter::Test(std::span<uint8_t> key) {
 /// @return true iff key is in the represented set. 
 BloomChain::BloomChain(uint32_t nslots, uint8_t nfunc, size_t align):
     nfunc(nfunc),
-    space(0),
+    space((nslots + sizeof(size_t) * 8 + (align - 1) / 8) / (align / 8) * (align / 8), 0),
     chain_length(0)
-{}
+{
+    this->matrix = std::span{&this->space[0], nslots};
+    this->block_addresses = std::span{&this->space[nslots], 64};
+}
 
 /// @brief add new bloom filter to batch
 /// @param filter the new bloom filter
@@ -110,7 +114,7 @@ void BloomChain::Join(BloomFilter&& filter, size_t block_address) {
     assert(this->chain_length < 64);
     for (int i = 0; i < filter.slots.size(); ++i) {
         if (filter.slots[i]) {
-            this->matrix[i] |= 1 << (63 - this->chain_length);
+            this->matrix[i] = this->matrix[i] | (uint64_t{1} << this->chain_length);
         }
     }
     this->block_addresses[this->chain_length] = block_address;
@@ -126,7 +130,7 @@ PtrIterator BloomChain::Test(std::span<uint8_t> key) {
     uint64_t collector = ~uint64_t{0};
     for (uint32_t i = 0; i < this->nfunc; ++i) {
         uint32_t hash_z = Mangle(i, hash_a, hash_b, this->matrix.size());
-        collector = collector & this->matrix[i];
+        collector = collector & this->matrix[hash_z];
     }
     return PtrIterator{this->block_addresses, collector, 0};
 }
@@ -151,12 +155,12 @@ PtrIterator::PtrIterator(
 /// @param address  the given address
 /// @param depleted if current iterator is depleted
 void PtrIterator::Next(size_t &address, bool& depleted) {
-    if (this->progress == block_addresses.size()) {
+    if (this->progress == 64) {
         depleted = true;
         return;
     }
-    if ((this->bitmask >> this->progress) & 1) {
-        address = this->block_addresses[this->block_addresses.size() - this->progress - 1];
+    if ((this->bitmask) & (uint64_t{1} << this->progress)) {
+        address = this->block_addresses[this->progress];
         depleted = false;
         this->progress += 1;
         return;
