@@ -86,7 +86,9 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "__nullptr": "cpp",
-        "stack": "cpp"
+        "stack": "cpp",
+        "cassert": "cpp",
+        "__functional_03": "cpp"
     },
     "typewriterAutoScroll.enable": false,
 }

@@ -14,6 +14,17 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(gtest)
 
+# -- Platform Flags
+
+if (UNIX)
+    message(STATUS "Platform: UNIX")
+    add_compile_definitions(UNIX)
+endif()
+if(MSVC OR MSYS OR MINGW)
+    message(STATUS "Platform: WINDOWS")
+    add_compile_definitions(WINDOWS)
+endif()
+
 # -- Library implemented here
 
 add_library(
@@ -23,6 +34,7 @@ add_library(
         lib/bloom_filter.cpp
         lib/bloom_store.cpp
         lib/partitioner.cpp
+        lib/port.cpp
 )
 
 target_include_directories(

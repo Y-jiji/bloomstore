@@ -55,7 +55,6 @@ void KVPairs::Put(std::span<uint8_t> key, std::span<uint8_t> val) {
 }
 
 /// @brief initialize an empty kv storage
-/// @tparam CAPACITY of the storage
 KVPairs::KVPairs(size_t key_bytes, size_t value_bytes, size_t capacity):
     size{0},
     key_bytes{key_bytes},
