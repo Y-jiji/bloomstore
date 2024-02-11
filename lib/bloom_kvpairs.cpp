@@ -1,7 +1,6 @@
 #include<cstring>
+#include<cassert>
 #include<bloom_kvpairs.hpp>
-#include<iostream>
-#include <cassert>
 
 namespace bloomstore {
 

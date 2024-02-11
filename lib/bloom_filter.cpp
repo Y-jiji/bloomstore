@@ -1,10 +1,22 @@
 #include<bloom_filter.hpp>
 #include<span>
 #include<cstring>
-#include<iostream>
+#include<cassert>
 
 namespace bloomstore
 {
+
+// --- Hashing algorithm --- //
+
+/// @brief double hash trick for generating more than 2 hash functions from only 2 full hash algorithm runs. 
+/// @param n double hash counter
+/// @param hash_a first hash
+/// @param hash_b second hash
+/// @param size the target domain size
+/// @return mangled hash from hash_a and hash_b
+uint32_t Mangle(uint8_t n, uint32_t hash_a, uint32_t hash_b, uint32_t size) {
+    return (n * hash_a + hash_b) % size;
+}
 
 /// @brief a utility function for murmur hash implementation
 /// @param k the scrambled key
@@ -16,29 +28,11 @@ inline uint32_t Scramble(uint32_t k) {
     return k;
 }
 
-/// @brief initialize a bloom filter with nslots slots and nfunc hash functions
-/// @param nslots   the number of slots
-/// @param nfunc    the number of hash functions
-BloomFilter::BloomFilter(uint32_t nslots, uint8_t nfunc):
-    slots(nslots, false),
-    nfunc(nfunc)
-{}
-
-/// @brief double hash trick for generating more than 2 hash functions from only 2 full hash algorithm runs. 
-/// @param n double hash counter
-/// @param hash_a first hash
-/// @param hash_b second hash
-/// @param size the target domain size
-/// @return mangled hash from hash_a and hash_b
-uint32_t BloomFilter::Mangle(uint8_t n, uint32_t hash_a, uint32_t hash_b, uint32_t size) {
-    return (n * hash_a + hash_b) % size;
-}
-
 /// @brief standard murmur hash algorithm, stenographically copied from [wikipedia](https://en.wikipedia.org/wiki/MurmurHash)
 /// @param key  the hashed key
 /// @param seed seed for hashing
 /// @return desired hash value
-uint32_t BloomFilter::Hash(std::span<uint8_t> key, uint32_t seed) {
+uint32_t Hash(std::span<uint8_t> key, uint32_t seed) {
     uint32_t h = seed;
     auto len = key.size();
     for (size_t i = 0; i + 3 < len; i += 4) {
@@ -63,13 +57,23 @@ uint32_t BloomFilter::Hash(std::span<uint8_t> key, uint32_t seed) {
     return h;
 }
 
+// --- Bloom Filter --- //
+
+/// @brief initialize a bloom filter with nslots slots and nfunc hash functions
+/// @param nslots   the number of slots
+/// @param nfunc    the number of hash functions
+BloomFilter::BloomFilter(uint32_t nslots, uint8_t nfunc):
+    slots(nslots, false),
+    nfunc(nfunc)
+{}
+
 /// @brief insert key into represented set
 /// @param key the inserted key
 void BloomFilter::Insert(std::span<uint8_t> key) {
-    uint32_t hash_a = BloomFilter::Hash(key, static_cast<uint32_t>('A'));
-    uint32_t hash_b = BloomFilter::Hash(key, static_cast<uint32_t>('B'));
+    uint32_t hash_a = Hash(key, static_cast<uint32_t>('A'));
+    uint32_t hash_b = Hash(key, static_cast<uint32_t>('B'));
     for (uint32_t i = 0; i < this->nfunc; ++i) {
-        uint32_t hash_z = BloomFilter::Mangle(i, hash_a, hash_b, this->slots.size());
+        uint32_t hash_z = Mangle(i, hash_a, hash_b, this->slots.size());
         this->slots[hash_z] = true;
     }
 }
@@ -78,14 +82,90 @@ void BloomFilter::Insert(std::span<uint8_t> key) {
 /// @param key the tested key
 /// @return true iff key is in the represented set. 
 bool BloomFilter::Test(std::span<uint8_t> key) {
-    uint32_t hash_a = BloomFilter::Hash(key, static_cast<uint32_t>('A'));
-    uint32_t hash_b = BloomFilter::Hash(key, static_cast<uint32_t>('B'));
+    uint32_t hash_a = Hash(key, static_cast<uint32_t>('A'));
+    uint32_t hash_b = Hash(key, static_cast<uint32_t>('B'));
     bool collector = true;
     for (uint32_t i = 0; i < this->nfunc; ++i) {
-        uint32_t hash_z = BloomFilter::Mangle(i, hash_a, hash_b, this->slots.size());
+        uint32_t hash_z = Mangle(i, hash_a, hash_b, this->slots.size());
         collector = collector && this->slots[hash_z];
     }
     return collector;
+}
+
+// --- Bloom Chain --- //
+
+/// @brief test if key is in the represented set. it may possibly return false positive results
+/// @param key the tested key
+/// @return true iff key is in the represented set. 
+BloomChain::BloomChain(uint32_t nslots, uint8_t nfunc):
+    matrix(nslots, 0),
+    block_addresses(64, 0),
+    nfunc(nfunc),
+    chain_length(0)
+{}
+
+/// @brief add new bloom filter to batch
+/// @param filter the new bloom filter
+/// @param block_address its block address
+void BloomChain::Join(BloomFilter&& filter, size_t block_address) {
+    assert(this->chain_length < 64);
+    for (int i = 0; i < filter.slots.size(); ++i) {
+        if (filter.slots[i]) {
+            this->matrix[i] |= 1 << (63 - this->chain_length);
+        }
+    }
+    this->block_addresses.push_back(block_address);
+    this->chain_length += 1;
+}
+
+/// @brief test if key exists in current chain
+/// @param key the inquired key
+/// @return a pointer iterator
+PtrIterator BloomChain::Test(std::span<uint8_t> key) {
+    uint32_t hash_a = Hash(key, static_cast<uint32_t>('A'));
+    uint32_t hash_b = Hash(key, static_cast<uint32_t>('B'));
+    uint64_t collector = ~uint64_t{0};
+    for (uint32_t i = 0; i < this->nfunc; ++i) {
+        uint32_t hash_z = Mangle(i, hash_a, hash_b, this->matrix.size());
+        collector = collector & this->matrix[i];
+    }
+    return PtrIterator{this->block_addresses, collector, 0};
+}
+
+// --- PtrIterator --- //
+
+/// @brief initialize a pointer iterator
+/// @param block_addresses referred block addresses
+/// @param bitmask a bitmask indicating whether current key presents in bloom chain
+/// @param progress current iteration progress
+PtrIterator::PtrIterator(
+    std::vector<size_t> &block_addresses,
+    uint64_t bitmask,
+    uint8_t progress
+):
+    block_addresses{block_addresses},
+    bitmask{bitmask},
+    progress{progress}
+{}
+
+/// @brief get next address
+/// @param address  the given address
+/// @param depleted if current iterator is depleted
+void PtrIterator::Next(size_t& address, bool& depleted) {
+    if (this->progress == block_addresses.size()) {
+        depleted = true;
+        return;
+    }
+    if ((this->bitmask >> this->progress) & 1) {
+        address = this->block_addresses[this->block_addresses.size() - this->progress - 1];
+        depleted = false;
+        this->progress += 1;
+        return;
+    }
+    else {
+        this->progress += 1;
+        return Next(address, depleted);
+    }
 }
 
 } // namespace bloomstore

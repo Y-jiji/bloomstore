@@ -88,4 +88,5 @@
         "__nullptr": "cpp",
         "stack": "cpp"
     },
+    "typewriterAutoScroll.enable": false,
 }
