@@ -13,7 +13,7 @@
 FileObject::FileObject(std::string&& path):
     path{path}
 {
-    this->fd = open(this->path.c_str(), O_RDWR|O_DIRECT|O_SYNC|O_APPEND);
+    this->fd = open(this->path.c_str(), O_RDWR|O_DIRECT|O_SYNC|O_APPEND, 0600);
 }
 
 void FileObject::Append(std::span<uint8_t> bytes) {

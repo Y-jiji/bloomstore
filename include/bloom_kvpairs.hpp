@@ -7,20 +7,35 @@
 
 namespace bloomstore {
 
+class BitSpan {
+  
+    private:
+    std::span<uint8_t> space;
+  
+    public:
+    BitSpan(std::span<uint8_t> space);
+    const bool Get(size_t i);
+    void Set(size_t i, bool v);
+
+};
+
 class KVPairs {
-  private:
-    std::vector<bool> tombstone;
-    std::vector<uint8_t> pairs;
+
+    private:
+    std::vector<uint8_t> space;
+    BitSpan              tombstone;
+    std::span<uint8_t>   pairs;
     size_t size;
     size_t key_bytes;
     size_t value_bytes;
     size_t capacity;
 
-  public:
+    public:
     KVPairs(size_t key_bytes, size_t value_bytes, size_t capacity);
     void Put(std::span<uint8_t> key, std::span<uint8_t> value);
     void Del(std::span<uint8_t> key);
     void Get(std::span<uint8_t> key, std::span<uint8_t> value, bool& is_tombstone, bool& is_found);
+
 };
 
 } // namespace bloomstore

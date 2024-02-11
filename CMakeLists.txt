@@ -25,6 +25,8 @@ if(MSVC OR MSYS OR MINGW)
     add_compile_definitions(WINDOWS)
 endif()
 
+add_compile_options(-O2)
+
 # -- Library implemented here
 
 add_library(

@@ -4,7 +4,7 @@
 #include<iostream>
 
 int main() {
-    int32_t fd = open("/tmp/test-file", O_RDWR|O_SYNC|O_DIRECT|O_APPEND|O_CREAT);
+    int32_t fd = open("/tmp/test-file", O_RDWR|O_SYNC|O_DIRECT|O_APPEND|O_CREAT, 0600);
     auto s = std::string{""};
     for (int i = 0; i < 1024; ++i) {
         s += "y";

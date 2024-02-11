@@ -97,10 +97,9 @@ bool BloomFilter::Test(std::span<uint8_t> key) {
 /// @brief test if key is in the represented set. it may possibly return false positive results
 /// @param key the tested key
 /// @return true iff key is in the represented set. 
-BloomChain::BloomChain(uint32_t nslots, uint8_t nfunc):
-    matrix(nslots, 0),
-    block_addresses(64, 0),
+BloomChain::BloomChain(uint32_t nslots, uint8_t nfunc, size_t align):
     nfunc(nfunc),
+    space(0),
     chain_length(0)
 {}
 
@@ -114,7 +113,7 @@ void BloomChain::Join(BloomFilter&& filter, size_t block_address) {
             this->matrix[i] |= 1 << (63 - this->chain_length);
         }
     }
-    this->block_addresses.push_back(block_address);
+    this->block_addresses[this->chain_length] = block_address;
     this->chain_length += 1;
 }
 
@@ -139,7 +138,7 @@ PtrIterator BloomChain::Test(std::span<uint8_t> key) {
 /// @param bitmask a bitmask indicating whether current key presents in bloom chain
 /// @param progress current iteration progress
 PtrIterator::PtrIterator(
-    std::vector<size_t> &block_addresses,
+    std::span<size_t> block_addresses,
     uint64_t bitmask,
     uint8_t progress
 ):
@@ -151,7 +150,7 @@ PtrIterator::PtrIterator(
 /// @brief get next address
 /// @param address  the given address
 /// @param depleted if current iterator is depleted
-void PtrIterator::Next(size_t& address, bool& depleted) {
+void PtrIterator::Next(size_t &address, bool& depleted) {
     if (this->progress == block_addresses.size()) {
         depleted = true;
         return;

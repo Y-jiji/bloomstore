@@ -26,13 +26,14 @@ class BloomFilter {
 class BloomChain {
 
     private:
-    std::vector<uint64_t> matrix;
-    std::vector<size_t>   block_addresses;
+    std::vector<uint64_t> space;
+    std::span<uint64_t> matrix;
+    std::span<size_t> block_addresses;
     uint32_t nfunc;
-    size_t   chain_length;
+    uint16_t chain_length;
 
     public:
-    BloomChain(uint32_t nslots, uint8_t nfunc);
+    BloomChain(uint32_t nslots, uint8_t nfunc, size_t align);
     void Join(BloomFilter&& filter, size_t block_address);
     PtrIterator Test(std::span<uint8_t> key);
 
@@ -42,14 +43,14 @@ class BloomChain {
 struct PtrIterator {
 
     private:
-    std::vector<size_t> &block_addresses;
+    std::span<size_t> block_addresses;
     uint64_t bitmask;
     uint8_t progress;
     friend BloomChain;
 
     public:
     PtrIterator(
-        std::vector<size_t> &block_addresses,
+        std::span<size_t> block_addresses,
         uint64_t bitmask,
         uint8_t progress
     );
