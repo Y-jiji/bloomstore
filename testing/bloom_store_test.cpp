@@ -6,6 +6,8 @@
 #include<array>
 #include"./xorshift.hpp"
 
+namespace {
+
 template<int const N>
 struct KeyHasher {
     std::size_t operator()(const std::array<uint8_t, N>& a) const {
@@ -17,26 +19,11 @@ struct KeyHasher {
     }   
 };
 
-
-
 void Truncate(std::string& path) {
     int fd = open(path.c_str(), O_CREAT|O_TRUNC, S_IRWXU);
     assert(fd >= 0);
     int error_code = close(fd);
     assert(error_code == 0);
-}
-
-TEST(BloomStoreInstance, Bench) {
-    auto path_kv = std::string{"./test-kv"};
-    auto path_bf = std::string{"./test-bf"};
-    Truncate(path_kv);
-    Truncate(path_bf);
-    auto bloom_store = bloomstore::BloomStore(
-        path_kv, path_bf,
-        512, 6,     // bf_slots, bf_functions
-        20, 44,     // key_bytes, value_bytes
-        64, 4096    // ram_capacity, align
-    );
 }
 
 TEST(BloomStoreInstance, Correctness) {
@@ -95,4 +82,6 @@ TEST(BloomStoreInstance, Correctness) {
             }
         }
     }
+}
+
 }

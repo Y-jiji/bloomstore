@@ -4,6 +4,7 @@
 
 namespace bloomstore
 {
+class Partitioner;
 
 class BloomStore {
 
@@ -24,6 +25,7 @@ class BloomStore {
     size_t stat_get_count;
     size_t stat_put_count;
     size_t stat_disk_read;
+    friend Partitioner;
     void TryFlush();
 
     public:

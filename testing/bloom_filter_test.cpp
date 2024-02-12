@@ -8,6 +8,8 @@
 #include<span>
 #include"./xorshift.hpp"
 
+namespace {
+
 #define ARR std::array<uint8_t, 4>
 
 uint32_t to_uint32(std::array<uint8_t, 4>& value) {
@@ -113,6 +115,7 @@ TEST(BloomChain, JoinConsistency) {
             chain_iter.Next(address, depleted);
             if (!depleted) { test_chain_positive.push_back(address); }
         }
+        std::reverse(test_vector_positive.begin(), test_vector_positive.end());
         ASSERT_EQ(test_vector_positive, test_chain_positive);
     }
 }
@@ -156,6 +159,11 @@ TEST(BloomChain, DumpLoadConsistency) {
             chain_iter.Next(address, depleted);
             if (!depleted) { test_chain_positive.push_back(address); }
         }
+        std::reverse(test_vector_positive.begin(), test_vector_positive.end());
         ASSERT_EQ(test_vector_positive, test_chain_positive);
     }
+}
+
+#undef ARR
+
 }

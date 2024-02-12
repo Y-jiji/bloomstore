@@ -32,6 +32,7 @@ add_compile_options(-O3)
 add_library(
     bloomstore
     SHARED
+        lib/hashing.cpp
         lib/bloom_kvpairs.cpp
         lib/bloom_filter.cpp
         lib/bloom_store.cpp
@@ -60,11 +61,11 @@ target_link_libraries(
 
 # -- Testing stuff goes here
 
-add_executable(bloom_filter_test testing/bloom_filter_test.cpp)
-target_link_libraries(bloom_filter_test bloomstore gtest_main)
+add_executable(
+    test
+        testing/bloom_filter_test.cpp
+        testing/bloom_kvpairs_test.cpp
+        testing/bloom_store_test.cpp
+)
 
-add_executable(bloom_kvpairs_test testing/bloom_kvpairs_test.cpp)
-target_link_libraries(bloom_kvpairs_test bloomstore gtest_main)
-
-add_executable(bloom_store_test testing/bloom_store_test.cpp)
-target_link_libraries(bloom_store_test bloomstore gtest_main)
+target_link_libraries(test bloomstore gtest_main)

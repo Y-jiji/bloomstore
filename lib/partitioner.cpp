@@ -1,5 +1,6 @@
 #include<iostream>
-#include<bloom_kvpairs.hpp>
+#include<hashing.hpp>
+#include<partitioner.hpp>
 
 namespace bloomstore {
 

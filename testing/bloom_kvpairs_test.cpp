@@ -6,6 +6,9 @@
 #include"./xorshift.hpp"
 #include<cstring>
 
+
+namespace {
+
 #define K 4
 #define V 4
 #define ARR std::array<uint8_t, 4>
@@ -119,3 +122,5 @@ TEST(KVPairs, DumpLoadTest) {
 #undef K
 #undef V
 #undef ARR
+
+}
