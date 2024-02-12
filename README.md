@@ -28,8 +28,7 @@ BloomStore Methods:
 
 - Put(`k`, `v`)
     1. Update active bloom filter. 
-    2. Insert into active hash map.
-        Q: Lock how?
+    2. Append to kv pairs. 
     3. If active buffer is full, flush it to SSD. 
 
 # Steps

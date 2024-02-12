@@ -1,4 +1,5 @@
 #include<stdint.h>
+#include<span>
 
 namespace xorshift {
 
@@ -18,7 +19,13 @@ class XorShift32 {
         x ^= x << 5;
         return this->state = x;
     }
-
+    void Fill(std::span<uint8_t> buff) {
+        uint32_t x = 0;
+        for (int i = 0; i < buff.size(); ++i) {
+            if (i % 4 == 0) { x = this->Sample(); }
+            buff[i] = (x >> (i % 4)) & 0xff;
+        }
+    }
 };
 
 }

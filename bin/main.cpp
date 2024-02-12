@@ -12,6 +12,8 @@
 
 #define TOTAL 20000000
 #define DELTA 100000
+#define K 20
+#define V 44
 
 void Truncate(std::string& path) {
     int fd = open(path.c_str(), O_CREAT|O_TRUNC, S_IRWXU);
@@ -36,36 +38,27 @@ int main() {
             Truncate(path_bf);
             bloom_store_replications.push_back(new bloomstore::BloomStore(
                 path_kv, path_bf,
-                8192, 11,    // bf_slots, bf_functions
-                4   , 4,     // key_bytes, value_bytes
-                512 , 1024   // ram_capacity, align
+                8192, 11,   // bf_slots, bf_functions
+                K   , V,    // key_bytes, value_bytes
+                512 , 1024  // ram_capacity, align
             ));
         }
     }
     auto partitioner = bloomstore::Partitioner(std::move(bloom_store_replications));
     auto random_number_generator = xorshift::XorShift32(5);
-    auto to_arr = [](uint32_t xvalue) {
-        auto value = std::array<uint8_t, 4>();
-        memcpy(&value, &xvalue, sizeof(uint32_t));
-        return value;
-    };
-    auto to_int = [](std::array<uint8_t, 4> value) {
-        uint32_t xvalue = 0;
-        memcpy(&xvalue, &value, sizeof(uint32_t));
-        return xvalue;
-    };
     auto begin = std::chrono::steady_clock::now();
     for (int i = 0; i < TOTAL; ++i) {
         auto action = (int)(random_number_generator.Sample() % 5 == 0);
-        auto key    = to_arr(random_number_generator.Sample());
-        auto value  = to_arr(random_number_generator.Sample());
+        auto key    = std::array<uint8_t, K>();
+        random_number_generator.Fill(std::span{key});
+        auto value  = std::array<uint8_t, V>();
         switch (action) {
             case 0: {
+                random_number_generator.Fill(std::span{value});
                 partitioner.Put(std::span{key}, std::span{value});
                 break;
             }
             case 1: {
-                auto value = std::array<uint8_t, 4>();
                 bool is_tombstone = true;
                 bool is_found = true;
                 partitioner.Get(std::span{key}, std::span{value}, is_tombstone, is_found);

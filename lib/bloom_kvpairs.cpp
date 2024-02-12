@@ -74,7 +74,7 @@ void KVPairs::Del(std::span<uint8_t> key) {
 /// @return nullopt if not found, {nullopt} if deleted, {{value}} if entry exists
 void KVPairs::Get(std::span<uint8_t> key, std::span<uint8_t> val, bool& is_tombstone, bool& is_found) {
     assert(key.size() == K);
-    assert(val.size() == K);
+    assert(val.size() == V);
     is_found = false;
     is_tombstone = false;
     for (int i = 0; i < this->size; ++i) {
