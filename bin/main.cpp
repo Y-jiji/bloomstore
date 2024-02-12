@@ -54,7 +54,7 @@ int main() {
         memcpy(&xvalue, &value, sizeof(uint32_t));
         return xvalue;
     };
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    auto begin = std::chrono::steady_clock::now();
     for (int i = 0; i < TOTAL; ++i) {
         auto action = (int)(random_number_generator.Sample() % 5 == 0);
         auto key    = to_arr(random_number_generator.Sample());
@@ -73,7 +73,7 @@ int main() {
             }
         }
         if (i % DELTA == 0) {
-            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            auto end = std::chrono::steady_clock::now();
             std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " [ms]" << std::endl;
             std::cout << "Throughput = " << DELTA / (std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() + 0.0001) * 1000 << " [ops/sec]" << std::endl;
             begin = end;
