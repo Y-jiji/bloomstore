@@ -32,7 +32,24 @@ BloomStore Methods:
         Q: Lock how?
     3. If active buffer is full, flush it to SSD. 
 
-# TODO
+# Steps
+
 - [x] BloomFilter and KVPairs
-- [ ] Dump and Load (should be easy)
-- [ ] Get BloomStore working
+- [x] Dump and Load (should be easy)
+- [x] Get BloomStore working
+
+# Build and Run
+
+You can build this project with the following commands: 
+
+```shell
+cmake -S . -B build
+cmake --build bulid
+```
+
+These commands will generate 3 artifacts: 
+- ./build/main (executable, simple benchmarking)
+- ./build/test (executable, unit tests)
+- ./build/libbloomstore.so (shared library, bloomstore implementation)
+
+I tried to replicate the linux workload in [the original article](https://ieeexplore.ieee.org/document/6232390) . 
