@@ -10,14 +10,15 @@
 #include<errno.h>
 #include<chrono>
 
-#define OPS 20000000
+#define TOTAL 20000000
+#define DELTA 100000
 
 void Truncate(std::string& path) {
     int fd = open(path.c_str(), O_CREAT|O_TRUNC, S_IRWXU);
     if (fd < 0) {
-        std::cerr << "open: " << path << std::endl;
-        std::cerr << "errno: " << errno << std::endl;
-        std::cerr << "fd: " << fd << std::endl;
+        std::cerr << "open: "   << path  << std::endl;
+        std::cerr << "errno: "  << errno << std::endl;
+        std::cerr << "fd: "     << fd    << std::endl;
     }
     assert(fd >= 0);
     int error_code = close(fd);
@@ -25,6 +26,7 @@ void Truncate(std::string& path) {
 }
 
 int main() {
+    // mimicing the "linux" workload in the MSST article: https://ieeexplore.ieee.org/document/6232390
     auto bloom_store_replications = std::vector<bloomstore::BloomStore*>();
     for (char i = 'a'; i <= 'z'; ++i) {
         for (char j = 'a'; j <= 'z'; ++j) {
@@ -34,9 +36,9 @@ int main() {
             Truncate(path_bf);
             bloom_store_replications.push_back(new bloomstore::BloomStore(
                 path_kv, path_bf,
-                4096, 1,     // bf_slots, bf_functions
+                8192, 11,    // bf_slots, bf_functions
                 4   , 4,     // key_bytes, value_bytes
-                4096, 1024   // ram_capacity, align
+                512 , 1024   // ram_capacity, align
             ));
         }
     }
@@ -53,7 +55,7 @@ int main() {
         return xvalue;
     };
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    for (int i = 0; i < OPS; ++i) {
+    for (int i = 0; i < TOTAL; ++i) {
         auto action = (int)(random_number_generator.Sample() % 5 == 0);
         auto key    = to_arr(random_number_generator.Sample());
         auto value  = to_arr(random_number_generator.Sample());
@@ -70,10 +72,10 @@ int main() {
                 break;
             }
         }
-        if (i % 100000 == 0) {
+        if (i % DELTA == 0) {
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " [ms]" << std::endl;
-            std::cout << "Throughput = " << OPS / (std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() + 0.0001) * 1000 << " [ops/sec]" << std::endl;
+            std::cout << "Throughput = " << DELTA / (std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() + 0.0001) * 1000 << " [TOTAL/sec]" << std::endl;
             begin = end;
         }
     }
