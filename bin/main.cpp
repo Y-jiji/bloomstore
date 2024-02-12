@@ -75,7 +75,7 @@ int main() {
         if (i % DELTA == 0) {
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " [ms]" << std::endl;
-            std::cout << "Throughput = " << DELTA / (std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() + 0.0001) * 1000 << " [TOTAL/sec]" << std::endl;
+            std::cout << "Throughput = " << DELTA / (std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() + 0.0001) * 1000 << " [ops/sec]" << std::endl;
             begin = end;
         }
     }
