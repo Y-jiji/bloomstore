@@ -1,3 +1,5 @@
+#include<stdint.h>
+
 namespace xorshift {
 
 class XorShift32 {

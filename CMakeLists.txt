@@ -25,7 +25,7 @@ if(MSVC OR MSYS OR MINGW)
     add_compile_definitions(WINDOWS)
 endif()
 
-add_compile_options(-O3)
+add_compile_options(-Og -g)
 
 # -- Library implemented here
 
@@ -66,6 +66,7 @@ add_executable(
         testing/bloom_filter_test.cpp
         testing/bloom_kvpairs_test.cpp
         testing/bloom_store_test.cpp
+        testing/partitioner_test.cpp
 )
 
 target_link_libraries(test bloomstore gtest_main)

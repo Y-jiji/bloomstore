@@ -45,14 +45,6 @@ void BloomStore::Get(
     }
     // try things on disk
     auto temp_kvpairs = KVPairs(this->key_bytes, this->value_bytes, this->capacity, this->align);
-    auto print_bloom_chain = [&](bloomstore::PtrIterator&& pointer_iter) {
-        bool depleted = false;
-        while (true) {
-            size_t address;
-            pointer_iter.Next(address, depleted);
-            if (depleted) break;
-        }
-    };
     auto try_bloom_chain = [&](bloomstore::PtrIterator&& pointer_iter) {
         bool depleted = false;
         while (true) {
@@ -65,9 +57,9 @@ void BloomStore::Get(
             });
             temp_kvpairs.Get(key, value, is_tombstone, is_found);
             if (is_found) return;
+            this->stat_false_positive += 1;
         }
     };
-    print_bloom_chain(std::move(this->bloom_chain_collector.Test(key)));
     try_bloom_chain(std::move(this->bloom_chain_collector.Test(key)));
     if (is_found) return;
     auto bloom_chain = bloomstore::BloomChain(
@@ -84,7 +76,6 @@ void BloomStore::Get(
                 = this->f_bloom_chains.ContinueReadRev(span);
         });
         if (!is_read_successful) return;
-        print_bloom_chain(std::move(bloom_chain.Test(key)));
         try_bloom_chain(std::move(bloom_chain.Test(key)));
         if (is_found) return;
     }

@@ -1,3 +1,4 @@
+#pragma once
 #include<port.hpp>
 #include<bloom_kvpairs.hpp>
 #include<bloom_filter.hpp>
@@ -21,14 +22,14 @@ class BloomStore {
     size_t align;
     size_t bloom_filter_nslots;
     size_t bloom_filter_nfuncs;
-
-    size_t stat_get_count;
-    size_t stat_put_count;
-    size_t stat_disk_read;
-    friend Partitioner;
     void TryFlush();
+    friend Partitioner;
 
     public:
+    size_t stat_get_count = 0;
+    size_t stat_put_count = 0;
+    size_t stat_disk_read = 0;
+    size_t stat_false_positive = 0;
     BloomStore(
         std::string& path_kv,
         std::string& path_bf,

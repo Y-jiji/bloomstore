@@ -10,20 +10,30 @@
 #include<span>
 #include<sys/stat.h>
 #include<iostream>
+#include<errno.h>
 
 FileObject::FileObject(std::string& path):
     path{path}
 {
     this->fd = open(this->path.c_str(), O_CREAT|O_RDWR|O_DIRECT|O_SYNC|O_APPEND, S_IRWXU);
+    if (this->fd < 0) {
+        std::cerr << "open: " << path << std::endl;
+        std::cerr << "errno: " << errno << std::endl;
+        std::cerr << "fd: " << this->fd << std::endl;
+    }
     assert(this->fd >= 0);
     struct stat st;
     stat(this->path.c_str(), &st);
     this->size = st.st_size;
 }
 
-FileObject::~FileObject()
-{
+FileObject::~FileObject() {
     int error_code = close(this->fd);
+    if (error_code != 0) {
+        std::cerr << "close: " << this->path << std::endl;
+        std::cerr << "errno: " << errno << std::endl;
+        std::cerr << "fd: " << this->fd << std::endl;
+    }
     assert(error_code == 0);
 }
 
@@ -32,7 +42,7 @@ size_t FileObject::Size() {
 }
 
 void FileObject::Append(std::span<uint8_t> bytes) {
-    assert(bytes.size() % 1024 == 0);
+    assert(bytes.size() % 512 == 0);
     // we used O_APPEND, so no lseek is required
     this->Seek(this->Size());
     int32_t flag = write(this->fd, &bytes[0], bytes.size());
@@ -41,8 +51,8 @@ void FileObject::Append(std::span<uint8_t> bytes) {
 }
 
 void FileObject::Read(size_t position, std::span<uint8_t> bytes) {
-    assert(bytes.size() % 1024 == 0);
-    assert(position % 1024 == 0);
+    assert(bytes.size() % 512 == 0);
+    assert(position % 512 == 0);
     lseek(this->fd, position, SEEK_SET);
     int32_t flag = read(this->fd, &bytes[0], bytes.size());
     this->position = position + bytes.size();
@@ -56,7 +66,7 @@ void FileObject::Seek(size_t position) {
 }
 
 bool FileObject::ContinueRead(std::span<uint8_t> bytes) {
-    assert(bytes.size() % 1024 == 0);
+    assert(bytes.size() % 512 == 0);
     if (this->size - this->position < bytes.size()) { return false; }
     int32_t flag = read(this->fd, &bytes[0], bytes.size());
     this->position += bytes.size();
@@ -65,7 +75,7 @@ bool FileObject::ContinueRead(std::span<uint8_t> bytes) {
 }
 
 bool FileObject::ContinueReadRev(std::span<uint8_t> bytes) {
-    assert(bytes.size() % 1024 == 0);
+    assert(bytes.size() % 512 == 0);
     if (this->position < bytes.size()) { return false; }
     this->position -= bytes.size();
     lseek(this->fd, -bytes.size(), SEEK_CUR);
