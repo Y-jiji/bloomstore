@@ -33,7 +33,7 @@ size_t FileObject::Size() {
 
 void FileObject::Append(std::span<uint8_t> bytes) {
     assert(bytes.size() % 1024 == 0);
-    // we used O_APPEND, so no lseek
+    // we used O_APPEND, so no lseek is required
     int32_t flag = write(this->fd, &bytes[0], bytes.size());
     assert(flag > 0);
     this->size += bytes.size();
@@ -47,18 +47,27 @@ void FileObject::Read(size_t position, std::span<uint8_t> bytes) {
     assert(flag > 0);
 }
 
-void FileObject::ContinueRead(std::span<uint8_t> bytes) {
-    assert(bytes.size() % 1024 == 0);
-    int32_t flag = read(this->fd, &bytes[0], bytes.size());
-    assert(flag > 0);
+void FileObject::Seek(size_t position) {
+    this->position = position;
+    lseek(this->fd, position, SEEK_SET);
 }
 
-void FileObject::ContinueReadRev(std::span<uint8_t> bytes) {
+bool FileObject::ContinueRead(std::span<uint8_t> bytes) {
     assert(bytes.size() % 1024 == 0);
+    if (this->size - this->position < bytes.size()) { return false; }
+    int32_t flag = read(this->fd, &bytes[0], bytes.size());
+    assert(flag > 0);
+    return true;
+}
+
+bool FileObject::ContinueReadRev(std::span<uint8_t> bytes) {
+    assert(bytes.size() % 1024 == 0);
+    if (this->position < bytes.size()) { return false; }
     lseek(this->fd, -bytes.size(), SEEK_CUR);
     int32_t flag = read(this->fd, &bytes[0], bytes.size());
     lseek(this->fd, -bytes.size(), SEEK_CUR);
     assert(flag > 0);
+    return true;
 }
 
 #endif

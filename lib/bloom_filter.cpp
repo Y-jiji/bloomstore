@@ -93,6 +93,11 @@ bool BloomFilter::Test(std::span<uint8_t> key) {
     return collector;
 }
 
+/// @brief remove all elements from the represented set. 
+void BloomFilter::Clear() {
+    std::fill(this->slots.begin(), this->slots.end(), false);
+}
+
 // --- Bloom Chain --- //
 
 /// @brief test if key is in the represented set. it may possibly return false positive results
@@ -110,7 +115,7 @@ BloomChain::BloomChain(size_t nslots, size_t nfunc, size_t align):
 /// @brief add new bloom filter to batch
 /// @param filter the new bloom filter
 /// @param block_address its block address
-void BloomChain::Join(BloomFilter&& filter, size_t block_address) {
+void BloomChain::Join(BloomFilter& filter, size_t block_address) {
     assert(this->chain_length < 64);
     for (int i = 0; i < filter.slots.size(); ++i) {
         if (filter.slots[i]) {

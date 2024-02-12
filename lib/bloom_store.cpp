@@ -13,7 +13,7 @@ BloomStore::BloomStore(
     size_t kv_ram_capacity,
     size_t align
 ):
-    f_bloom_filters{path_bf},
+    f_bloom_chains{path_bf},
     f_kv_pairs{path_kv},
     bloom_chain_collector{bloom_filter_nslots, bloom_filter_nfuncs, align},
     active_bloom_filter{bloom_filter_nslots, bloom_filter_nfuncs},
@@ -21,11 +21,12 @@ BloomStore::BloomStore(
     key_bytes{key_bytes},
     value_bytes{value_bytes},
     capacity{kv_ram_capacity},
-    align{align}
+    align{align},
+    bloom_filter_nslots{bloom_filter_nslots},
+    bloom_filter_nfuncs{bloom_filter_nfuncs}
 {}
 
-BloomStore::~BloomStore() {
-}
+BloomStore::~BloomStore() {}
 
 void BloomStore::Get(
     std::span<uint8_t> key, 
@@ -38,10 +39,41 @@ void BloomStore::Get(
         this->active_kv_pairs.Get(key, value, is_tombstone, is_found);
         if (is_found) { return; }
     }
-    // try stacked bloom filters
+    // try things on disk
     auto temp_kvpairs = KVPairs(this->key_bytes, this->value_bytes, this->capacity, this->align);
-    // try bloom filters on disk
-    // TODO
+    auto try_bloom_chain = [&](bloomstore::PtrIterator&& pointer_iter) {
+        bool depleted = false;
+        while (!depleted) {
+            size_t address;
+            pointer_iter.Next(address, depleted);
+            if (depleted) break;
+            temp_kvpairs.Load([&](std::span<uint8_t> span) {
+                this->f_kv_pairs.Read(address, span);
+            });
+            temp_kvpairs.Get(key, value, is_tombstone, is_found);
+            if (is_found) return;
+        }
+    };
+    is_tombstone = false;
+    is_found = false; 
+    try_bloom_chain(std::move(this->bloom_chain_collector.Test(key)));
+    if (is_found) return;
+    auto bloom_chain = bloomstore::BloomChain(
+        this->bloom_filter_nslots, 
+        this->bloom_filter_nfuncs, 
+        this->align
+    );
+    this->f_bloom_chains.Seek(this->f_bloom_chains.Size());
+    while (true) {
+        bool is_read_successful = false;
+        bloom_chain.Load([&](std::span<uint8_t> span) {
+            is_read_successful 
+                = this->f_bloom_chains.ContinueReadRev(span);
+        });
+        if (!is_read_successful) return;
+        try_bloom_chain(std::move(bloom_chain.Test(key)));
+        if (is_found) return;
+    }
 }
 
 void BloomStore::Put(
@@ -62,12 +94,14 @@ void BloomStore::Del(
 }
 
 void BloomStore::TryFlush() {
-    // TODO
     if (this->active_kv_pairs.IsFull()) {
-        // dump to disk, dump to chain collector
+        auto address = this->f_kv_pairs.Size();
+        this->active_kv_pairs.Dump(this->f_kv_pairs);
+        this->bloom_chain_collector.Join(this->active_bloom_filter, address);
+        this->active_bloom_filter.Clear();
     }
     if (this->bloom_chain_collector.IsFull()) {
-        // dump to disk
+        this->bloom_chain_collector.Dump(this->f_bloom_chains);
     }
 }
 

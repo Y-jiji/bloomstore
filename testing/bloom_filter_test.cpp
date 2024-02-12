@@ -94,7 +94,8 @@ TEST(BloomChain, JoinConsistency) {
             bloom_filter.Insert(std::span{key});
         }
         bloom_vector.push_back(bloom_filter);
-        bloom_chain.Join(std::move(bloom_filter), i);
+        bloom_chain.Join(bloom_filter, i);
+        bloom_filter.Clear();
     }
     for (int i = 0; i < 20000; ++i) {
         auto key = to_arr(random_number_generator.Sample());
@@ -130,7 +131,8 @@ TEST(BloomChain, DumpLoadConsistency) {
             bloom_filter.Insert(std::span{key});
         }
         bloom_vector.push_back(bloom_filter);
-        bloom_chain.Join(std::move(bloom_filter), i);
+        bloom_chain.Join(bloom_filter, i);
+        bloom_filter.Clear();
     }
     auto start = file.Size();
     bloom_chain.Dump(file);

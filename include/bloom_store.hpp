@@ -8,7 +8,7 @@ namespace bloomstore
 class BloomStore {
 
     private:
-    FileObject f_bloom_filters;
+    FileObject f_bloom_chains;
     FileObject f_kv_pairs;
     BloomChain bloom_chain_collector;
     BloomFilter active_bloom_filter;
@@ -18,6 +18,8 @@ class BloomStore {
     size_t value_bytes;
     size_t capacity;
     size_t align;
+    size_t bloom_filter_nslots;
+    size_t bloom_filter_nfuncs;
 
     size_t stat_get_count;
     size_t stat_put_count;
