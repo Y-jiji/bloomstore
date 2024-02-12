@@ -21,7 +21,7 @@ if (UNIX)
     add_compile_definitions(UNIX)
 endif()
 if(MSVC OR MSYS OR MINGW)
-    message(STATUS "Platform: WINDOWS")
+    message(FATAL_ERROR "Platform: WINDOWS (NOT WORKING!)")
     add_compile_definitions(WINDOWS)
 endif()
 
