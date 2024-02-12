@@ -100,7 +100,7 @@ bool BloomFilter::Test(std::span<uint8_t> key) {
 /// @return true iff key is in the represented set. 
 BloomChain::BloomChain(size_t nslots, size_t nfunc, size_t align):
     nfunc(nfunc),
-    space((nslots + sizeof(size_t) * 8 + (align - 1) / 8) / (align / 8) * (align / 8), 0),
+    space(((nslots + sizeof(size_t) * 8 + (align - 1)) / align * align + 7) / 8 * 8, 0),
     chain_length(0)
 {
     this->matrix = std::span{&this->space[0], nslots};
@@ -144,15 +144,16 @@ bool BloomChain::IsFull() {
 /// @brief we cannot really know what do we want to do with the FileObject, so ... we just pass the loader
 /// @param loader the loading routine
 void BloomChain::Load(std::function<void(std::span<uint8_t>)> loader) {
-    auto space = std::span{(uint8_t*)(&this->space[0]), this->space.size()};
+    auto space = std::span{(uint8_t*)(&this->space[0]), sizeof(uint64_t) * this->space.size()};
     loader(space);
+    this->chain_length = 64;
 }
 
 /// @brief dump current bloom chain into file and clear internal data
 /// @param file the file to dump into
 void BloomChain::Dump(FileObject& file) {
     assert(this->IsFull());
-    auto space = std::span{(uint8_t*)(&this->space[0]), this->space.size()};
+    auto space = std::span{(uint8_t*)(&this->space[0]), sizeof(uint64_t) * this->space.size()};
     file.Append(space);
     this->chain_length = 0;
     memset(&this->space[0], 0, sizeof(uint64_t) * this->space.size());

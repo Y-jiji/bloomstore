@@ -102,6 +102,7 @@ void KVPairs::Dump(FileObject& file) {
     auto space = std::span{&this->space[0], this->space.size()};
     file.Append(space);
     this->size = 0;
+    memset(&this->space[0], 0, this->space.size());
 }
 
 /// @brief load kvpairs from file object

@@ -55,7 +55,7 @@ TEST(BloomFilter, FPRateCloseToTheory) {
     }
     // verify false positive rate is close to theoretical calculation
     auto fp_rate_empirical = fp(fp_count_empirical) / fp(20000);
-    ASSERT_TRUE(std::abs(fp_rate_empirical - fp_rate_calculated) < 0.05);
+    ASSERT_TRUE(std::abs(fp_rate_empirical - fp_rate_calculated) < 0.01);
 }
 
 /// @brief verify no false negative happens in bloom filter
@@ -113,5 +113,47 @@ TEST(BloomChain, JoinConsistency) {
             if (!depleted) { test_chain_positive.push_back(address); }
         }
         ASSERT_EQ(test_vector_positive, test_chain_positive);;
+    }
+}
+
+TEST(BloomChain, DumpLoadConsistency) {
+    auto random_number_generator = xorshift::XorShift32(5);
+    uint32_t k = 5, n = 200, m = 1000;
+    auto bloom_chain = bloomstore::BloomChain(m, k, 1024);
+    auto bloom_vector = std::vector<bloomstore::BloomFilter>();
+    auto path = std::string{"/tmp/bloomstore-test-file"};
+    auto file = FileObject(path);
+    for (int i = 0; i < 64; ++i) {
+        auto bloom_filter = bloomstore::BloomFilter(m, k);
+        for (int j = 0; j < n; ++j) {
+            auto key = to_arr(random_number_generator.Sample());
+            bloom_filter.Insert(std::span{key});
+        }
+        bloom_vector.push_back(bloom_filter);
+        bloom_chain.Join(std::move(bloom_filter), i);
+    }
+    auto start = file.Size();
+    bloom_chain.Dump(file);
+    ASSERT_FALSE(bloom_chain.IsFull());
+    bloom_chain.Load([&](std::span<uint8_t> span) {
+        file.Read(start, span);
+    });
+    for (int i = 0; i < 20000; ++i) {
+        auto key = to_arr(random_number_generator.Sample());
+        auto test_vector_positive = std::vector<int>();
+        for (int j = 0; j < 64; ++j) {
+            if (bloom_vector[j].Test(std::span{key})) {
+                test_vector_positive.push_back(j);
+            }
+        }
+        auto test_chain_positive = std::vector<int>();
+        auto chain_iter = bloom_chain.Test(std::span{key});
+        bool depleted = false;
+        while (!depleted) {
+            size_t address = 0x7777;
+            chain_iter.Next(address, depleted);
+            if (!depleted) { test_chain_positive.push_back(address); }
+        }
+        ASSERT_EQ(test_vector_positive, test_chain_positive);
     }
 }
