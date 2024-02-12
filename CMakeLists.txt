@@ -25,7 +25,7 @@ if(MSVC OR MSYS OR MINGW)
     add_compile_definitions(WINDOWS)
 endif()
 
-add_compile_options(-O2)
+add_compile_options(-O3)
 
 # -- Library implemented here
 
@@ -65,3 +65,6 @@ target_link_libraries(bloom_filter_test bloomstore gtest_main)
 
 add_executable(bloom_kvpairs_test testing/bloom_kvpairs_test.cpp)
 target_link_libraries(bloom_kvpairs_test bloomstore gtest_main)
+
+add_executable(bloom_store_test testing/bloom_store_test.cpp)
+target_link_libraries(bloom_store_test bloomstore gtest_main)

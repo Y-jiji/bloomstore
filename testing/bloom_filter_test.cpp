@@ -113,7 +113,7 @@ TEST(BloomChain, JoinConsistency) {
             chain_iter.Next(address, depleted);
             if (!depleted) { test_chain_positive.push_back(address); }
         }
-        ASSERT_EQ(test_vector_positive, test_chain_positive);;
+        ASSERT_EQ(test_vector_positive, test_chain_positive);
     }
 }
 

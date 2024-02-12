@@ -184,12 +184,13 @@ PtrIterator::PtrIterator(
 /// @param address  the given address
 /// @param depleted if current iterator is depleted
 void PtrIterator::Next(size_t &address, bool& depleted) {
-    if (this->progress == 64) {
+    if (this->progress == this->block_addresses.size()) {
         depleted = true;
         return;
     }
-    if ((this->bitmask) & (uint64_t{1} << this->progress)) {
-        address = this->block_addresses[this->progress];
+    auto j = this->block_addresses.size() - this->progress - 1;
+    if ((this->bitmask) & (uint64_t{1} << j)) {
+        address = this->block_addresses[j];
         depleted = false;
         this->progress += 1;
         return;

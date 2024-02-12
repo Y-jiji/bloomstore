@@ -1,4 +1,5 @@
 #include<bloom_store.hpp>
+#include<iostream>
 
 namespace bloomstore
 {
@@ -34,6 +35,9 @@ void BloomStore::Get(
     bool& is_tombstone,
     bool& is_found
 ) {
+    is_tombstone = false;
+    is_found = false; 
+    this->stat_get_count += 1;
     // try active kv pairs
     if (this->active_bloom_filter.Test(key)) {
         this->active_kv_pairs.Get(key, value, is_tombstone, is_found);
@@ -41,21 +45,29 @@ void BloomStore::Get(
     }
     // try things on disk
     auto temp_kvpairs = KVPairs(this->key_bytes, this->value_bytes, this->capacity, this->align);
+    auto print_bloom_chain = [&](bloomstore::PtrIterator&& pointer_iter) {
+        bool depleted = false;
+        while (true) {
+            size_t address;
+            pointer_iter.Next(address, depleted);
+            if (depleted) break;
+        }
+    };
     auto try_bloom_chain = [&](bloomstore::PtrIterator&& pointer_iter) {
         bool depleted = false;
-        while (!depleted) {
+        while (true) {
             size_t address;
             pointer_iter.Next(address, depleted);
             if (depleted) break;
             temp_kvpairs.Load([&](std::span<uint8_t> span) {
+                this->stat_disk_read += 1;
                 this->f_kv_pairs.Read(address, span);
             });
             temp_kvpairs.Get(key, value, is_tombstone, is_found);
             if (is_found) return;
         }
     };
-    is_tombstone = false;
-    is_found = false; 
+    print_bloom_chain(std::move(this->bloom_chain_collector.Test(key)));
     try_bloom_chain(std::move(this->bloom_chain_collector.Test(key)));
     if (is_found) return;
     auto bloom_chain = bloomstore::BloomChain(
@@ -67,10 +79,12 @@ void BloomStore::Get(
     while (true) {
         bool is_read_successful = false;
         bloom_chain.Load([&](std::span<uint8_t> span) {
+            this->stat_disk_read += 1;
             is_read_successful 
                 = this->f_bloom_chains.ContinueReadRev(span);
         });
         if (!is_read_successful) return;
+        print_bloom_chain(std::move(bloom_chain.Test(key)));
         try_bloom_chain(std::move(bloom_chain.Test(key)));
         if (is_found) return;
     }
@@ -80,6 +94,7 @@ void BloomStore::Put(
     std::span<uint8_t> key,
     std::span<uint8_t> value
 ) {
+    this->stat_put_count += 1;
     this->active_bloom_filter.Insert(key);
     this->active_kv_pairs.Put(key, value);
     this->TryFlush();
@@ -88,6 +103,7 @@ void BloomStore::Put(
 void BloomStore::Del(
     std::span<uint8_t> key
 ) {
+    this->stat_put_count += 1;
     this->active_bloom_filter.Insert(key);
     this->active_kv_pairs.Del(key);
     this->TryFlush();
